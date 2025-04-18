@@ -27,6 +27,7 @@ import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { fetchTasks, createTask, updateTask, deleteTask, fetchUsers } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 
 type Task = {
   _id: string
