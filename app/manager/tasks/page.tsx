@@ -1,11 +1,9 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Dialog,
@@ -23,10 +21,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Pencil, Trash2, Plus, Calendar } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { fetchTasks, createTask, updateTask, deleteTask, fetchUsers } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
@@ -53,7 +50,7 @@ type User = {
   role: string
 }
 
-export default function AdminTasksPage() {
+export default function ManagerTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -78,10 +75,12 @@ export default function AdminTasksPage() {
     setIsLoading(true)
     try {
       const [tasksData, usersData] = await Promise.all([fetchTasks(), fetchUsers()])
-      // Ensure tasks have valid creator information
-      const validTasks = tasksData.filter(task => task.creatorId && task.creatorId.name)
-      setTasks(validTasks)
-      setUsers(usersData)
+      // Filter tasks to show only those assigned to the current manager
+      const managerTasks = tasksData.filter(task => task.creatorId && task.creatorId.name)
+      setTasks(managerTasks)
+      // Filter users to show only team members
+      const teamMembers = usersData.filter(user => user.role === "user")
+      setUsers(teamMembers)
     } catch (error) {
       console.error("Failed to fetch data:", error)
       toast({
@@ -222,8 +221,8 @@ export default function AdminTasksPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Task Management</h1>
-            <p className="text-muted-foreground">Manage all tasks in the system.</p>
+            <h1 className="text-3xl font-bold tracking-tight">Team Tasks</h1>
+            <p className="text-muted-foreground">Manage your team's tasks.</p>
           </div>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -294,31 +293,30 @@ export default function AdminTasksPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Task</DialogTitle>
-              <DialogDescription>Create a new task and assign it to a user.</DialogDescription>
+              <DialogDescription>Create a new task for your team.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  placeholder="Task title"
+                  placeholder="Enter task title"
                 />
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  placeholder="Task description"
-                  rows={3}
+                  placeholder="Enter task description"
                 />
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={formData.status} onValueChange={handleStatusChange}>
                   <SelectTrigger>
@@ -331,29 +329,26 @@ export default function AdminTasksPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date</Label>
-                <div className="flex items-center">
-                  <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="dueDate"
-                    name="dueDate"
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={handleInputChange}
-                  />
-                </div>
+                <Input
+                  id="dueDate"
+                  name="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={handleInputChange}
+                />
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="assignedTo">Assign To</Label>
                 <Select value={formData.assignedTo} onValueChange={handleUserChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select user" />
+                    <SelectValue placeholder="Select team member" />
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((user) => (
                       <SelectItem key={user._id} value={user._id}>
-                        {user.name} ({user.role})
+                        {user.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -374,24 +369,28 @@ export default function AdminTasksPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Task</DialogTitle>
-              <DialogDescription>Update task information.</DialogDescription>
+              <DialogDescription>Update task details.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
                 <Label htmlFor="edit-title">Title</Label>
-                <Input id="edit-title" name="title" value={formData.title} onChange={handleInputChange} />
+                <Input
+                  id="edit-title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                />
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="edit-description">Description</Label>
                 <Textarea
                   id="edit-description"
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  rows={3}
                 />
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="edit-status">Status</Label>
                 <Select value={formData.status} onValueChange={handleStatusChange}>
                   <SelectTrigger>
@@ -404,29 +403,26 @@ export default function AdminTasksPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="edit-dueDate">Due Date</Label>
-                <div className="flex items-center">
-                  <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="edit-dueDate"
-                    name="dueDate"
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={handleInputChange}
-                  />
-                </div>
+                <Input
+                  id="edit-dueDate"
+                  name="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={handleInputChange}
+                />
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="edit-assignedTo">Assign To</Label>
                 <Select value={formData.assignedTo} onValueChange={handleUserChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select user" />
+                    <SelectValue placeholder="Select team member" />
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((user) => (
                       <SelectItem key={user._id} value={user._id}>
-                        {user.name} ({user.role})
+                        {user.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -447,23 +443,14 @@ export default function AdminTasksPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Task</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this task? This action cannot be undone.
-              </DialogDescription>
+              <DialogDescription>Are you sure you want to delete this task?</DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              {selectedTask && (
-                <p>
-                  You are about to delete <strong>{selectedTask.title}</strong>.
-                </p>
-              )}
-            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
                 Cancel
               </Button>
               <Button variant="destructive" onClick={handleDeleteTask}>
-                Delete Task
+                Delete
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -471,4 +458,4 @@ export default function AdminTasksPage() {
       </div>
     </DashboardLayout>
   )
-}
+} 
